@@ -13,6 +13,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController()
 @EnableWebMvc
@@ -35,12 +36,16 @@ public class EmployeeQueryController {
     }
 
     @GetMapping
-    public List<Employee> getAllEmployee() throws SQLException, IOException {
+    public List<Employee> getAllEmployee(@RequestParam(required = false) String name) throws SQLException, IOException {
         ConnectionSource connectionSource = new JdbcConnectionSource(jdbcConnection, userName, password);
         Dao<Employee, String> employeeDao = DaoManager.createDao(connectionSource, Employee.class);
         List<Employee> employees = employeeDao.queryForAll();
         connectionSource.close();
-        return employees;
+        if (name == null) {
+            return employees;
+        } else {
+            return employees.stream().filter(employee -> name.equalsIgnoreCase(employee.getName())).collect(Collectors.toList());
+        }
     }
 
 }
