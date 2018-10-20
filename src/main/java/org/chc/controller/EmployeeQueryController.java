@@ -7,6 +7,8 @@ import com.j256.ormlite.support.ConnectionSource;
 import org.chc.model.Employee;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
@@ -26,13 +28,18 @@ public class EmployeeQueryController {
     private static String password = System.getenv("password");
 
     @GetMapping("/{id}")
-    public Employee getEmployee(@PathVariable String id) throws SQLException, IOException {
+    public ResponseEntity<Employee> getEmployee(@PathVariable String id) throws SQLException, IOException {
         logger.info("Get the employee with id = " + id);
         ConnectionSource connectionSource = new JdbcConnectionSource(jdbcConnection, userName, password);
         Dao<Employee, String> employeeDao = DaoManager.createDao(connectionSource, Employee.class);
         Employee employee = employeeDao.queryForId(id);
         connectionSource.close();
-        return employee;
+
+        if (employee == null) {
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
+        } else {
+            return new ResponseEntity<>(employee, HttpStatus.OK);
+        }
     }
 
     @GetMapping
@@ -45,6 +52,21 @@ public class EmployeeQueryController {
             return employees;
         } else {
             return employees.stream().filter(employee -> name.equalsIgnoreCase(employee.getName())).collect(Collectors.toList());
+        }
+    }
+
+    @GetMapping("/name/{name}")
+    public ResponseEntity<Employee> getEmployeeWithName(@PathVariable String name) throws SQLException, IOException {
+        logger.info("Get the employee with name = " + name);
+        ConnectionSource connectionSource = new JdbcConnectionSource(jdbcConnection, userName, password);
+        Dao<Employee, String> employeeDao = DaoManager.createDao(connectionSource, Employee.class);
+        List<Employee> employees = employeeDao.queryForEq("name", name);
+        connectionSource.close();
+
+        if (employees.size() == 0) {
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
+        } else {
+            return new ResponseEntity<>(employees.get(0), HttpStatus.OK);
         }
     }
 
